@@ -13,7 +13,7 @@ function sync(){
   else if(k==='happiness')s.st.h=v;
   else if(k==='q')s.q=v;
  }
- if(s.flags?.isolatedScenario){s.urban=false;s.city=null;}
+ if(s.flags?.isolatedScenario){if(window.__requestedIsolatedOrigin==='png_remote_1950'&&s.born==='PNG')s.flags.isolatedScenario='png_remote_1950';s.urban=false;s.city=null;}
  // The original national event engine remains active; this editor is a supplemental layer.
 }
 setInterval(sync,300);
