@@ -65,5 +65,42 @@ function panel(){
  const oldToggle=$('cheatToggle');if(oldToggle)oldToggle.addEventListener('click',()=>{if(!document.getElementById('cheatPanel')?.hidden){refreshKids();refreshFamily()}});
  refreshKids();refreshFamily();
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',panel);else panel();
+
+function addQuickAccess(){
+ if(document.getElementById('cex-family-shortcut'))return;
+ const btn=document.createElement('button');btn.id='cex-family-shortcut';btn.type='button';btn.textContent='家族・寿命';btn.style.cssText='position:fixed;right:14px;bottom:75px;z-index:99992;background:#0f6e68;color:white;border:0;border-radius:24px;padding:11px 16px;font-weight:700;box-shadow:0 3px 16px #0005';
+ btn.onclick=()=>{const p=document.getElementById('cheatPanel'),section=document.getElementById('cex-panel');if(!p||!section)return;p.hidden=false;section.scrollIntoView({block:'start',behavior:'smooth'});};
+ document.body.append(btn);
+ const root=document.getElementById('cex-panel'),p=document.getElementById('cheatPanel');if(root&&p){root.style.scrollMarginTop='12px';}
+}
+const scenarioData={
+ imperial:{title:'皇族としての人生（仮想）',milestones:[[6,'宮廷での教育と公的行事が始まる。'],[18,'公務、学業、自由な進路の間で将来を考へる。'],[30,'公的責任と私生活との釣合ひが課題になる。'],[50,'次世代への継承と役割の変化が話題となる。']],choices:[['公務を優先する',-2,5,0],['学問や個人の活動を重視する',3,0,2],['私生活を守る',5,-2,0]]},
+ president:{title:'大統領の子としての人生（仮想）',milestones:[[6,'警護と注目のなかで学校生活を始める。'],[18,'世論の注目を受けながら進路を選ぶ。'],[30,'政治・事業・独立した職業の可能性を考へる。'],[50,'家族の政治的な経歴との距離を考へる。']],choices:[['政治活動に参加する',-3,5,0],['独立した職業を選ぶ',4,0,3],['公的注目を避ける',5,-3,0]]},
+ royal:{title:'王族の人生（仮想）',milestones:[[6,'家族の地位と将来の役割を意識し始める。'],[18,'伝統と自分の進路の間で選択を迫られる。'],[30,'宮廷の責任と私生活の両立を考へる。'],[50,'後継者と家族の行く末を考へる。']],choices:[['儀礼や公務を担ふ',-2,4,0],['文化・教育に関はる',3,2,1],['宮廷から距離を置く',5,-4,0]]},
+ sentinel:{title:'隔絶された島の仮想人生',milestones:[[6,'共同体のなかで成長する。生活の細部は史料不足のため描写しない。'],[18,'外部世界との接触を避ける共同体の暮らしについて考へる。'],[30,'島の環境と共同体の将来をめぐる選択を想像する。'],[50,'世代を超えて島の暮らしが続く可能性について考へる。']],choices:[['共同体の人々との関係を重んじる',3,2,0],['島の環境を探索する',2,0,1],['静かな生活を選ぶ',4,0,0]]},
+ png:{title:'1950年代PNG・隔絶集団の仮想人生',milestones:[[6,'1950年代のニューギニア内陸部という仮想的設定で成長する。'],[18,'外部との接触や地域の変化が将来に影響するかもしれない。'],[30,'変化を受け入れるかどうかを考へる。'],[50,'共同体と次世代について考へる。']],choices:[['地域の人間関係を優先する',4,2,0],['外部世界の情報に接する',-1,0,3],['暮らしの変化を抑へる',3,0,0]]}
+};
+function scenarioType(s){if(!s?.flags)return null;if(s.flags.isolatedScenario==='sentinel_island')return 'sentinel';if(s.flags.isolatedScenario==='png_remote_1950')return 'png';if(s.flags.imperial)return 'imperial';if(s.flags.presidentChild)return 'president';if(s.flags.royal)return 'royal';return null;}
+let lastLife=null,lastAge=-1;
+function scenarioCycle(){
+ const s=state();if(!s||s.phase==='end')return;
+ if(s!==lastLife||s.age<lastAge){lastLife=s;lastAge=-1;}
+ const type=scenarioType(s);if(!type)return;
+ const d=scenarioData[type];s.flags.cexMilestones ||= {};
+ for(const [age,msg] of d.milestones){const key=type+'_'+age;if(s.age>=age&&!s.flags.cexMilestones[key]){s.flags.cexMilestones[key]=1;try{log('特別シナリオ（創作）：'+msg,'ev');save();}catch(e){console.warn(e)}}}
+ lastAge=s.age;
+}
+function addScenarioPanel(){
+ const root=document.createElement('section');root.id='cex-story';root.style.cssText='position:fixed;z-index:99993;left:12px;bottom:12px;width:min(400px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card,#fff);color:var(--ink,#111);border:2px solid var(--stamp,#0f6e68);padding:14px;border-radius:12px;box-shadow:0 6px 30px #0006';root.hidden=true;root.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><b id="cex-storytitle"></b><button id="cex-storyclose" type="button">閉じる</button></div><p style="font-size:12px">原作の既存イベントに加へた非公式の創作シナリオです。実在の人物や集団の生活を再現するものではありません。</p><div id="cex-storychoices" style="display:grid;gap:8px"></div><p id="cex-storymsg" style="font-size:13px"></p>';
+ document.body.append(root);const btn=document.createElement('button');btn.type='button';btn.id='cex-storytoggle';btn.textContent='特別イベント';btn.style.cssText='position:fixed;left:14px;bottom:18px;z-index:99992;background:#8c1d3c;color:#fff;border:0;border-radius:24px;padding:11px 16px;font-weight:700;box-shadow:0 3px 16px #0005';document.body.append(btn);
+ document.getElementById('cex-storyclose').onclick=()=>root.hidden=true;
+ function show(){const s=state(),type=scenarioType(s),d=scenarioData[type];if(!d){document.getElementById('cex-storytitle').textContent='特殊な出自は未設定です';document.getElementById('cex-storychoices').replaceChildren();document.getElementById('cex-storymsg').textContent='出生条件で特殊な出自を選び、人生を始めてください。';return;}
+ document.getElementById('cex-storytitle').textContent=d.title;const list=document.getElementById('cex-storychoices');list.replaceChildren();
+ for(const [label,dh,dso,de] of d.choices){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='ghost sm';b.onclick=()=>{if(!state())return;const t=state();t.st.h=Math.min(100,Math.max(0,t.st.h+dh));t.st.so=Math.min(100,Math.max(0,t.st.so+dso));t.edu=Math.max(0,t.edu+de);try{log('特別シナリオで「'+label+'」を選んだ。','ev');save()}catch(e){}document.getElementById('cex-storymsg').textContent='選択を記録し、幸福・社会性・教育を変更しました。';};list.append(b)}
+ document.getElementById('cex-storymsg').textContent='人生を進めると年齢に応じた特別な記録が追加されます。';}
+ btn.onclick=()=>{root.hidden=!root.hidden;if(!root.hidden)show()};root.hidden=true;
+}
+
+function boot(){panel();addQuickAccess();addScenarioPanel();setInterval(scenarioCycle,1200)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
