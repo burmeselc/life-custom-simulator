@@ -3,6 +3,7 @@
 'use strict';
 const pins={};let last=null;
 const state=()=>{try{return typeof S!=='undefined'?S:null}catch{return null}};
+const safeRecord=(message)=>{try{if(typeof log==='function')log(message,'ev');if(typeof save==='function')save();}catch(e){console.warn('scenario record',e)}};
 const numeric=(x,min,max)=>{const n=Number(x);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):null};
 function sync(){
  const s=state();if(!s||s.phase==='end')return;
@@ -12,10 +13,8 @@ function sync(){
   else if(k==='happiness')s.st.h=v;
   else if(k==='q')s.q=v;
  }
- if(s.flags?.isolatedScenario){
-  s.urban=false;s.city=null;
-  // The original national statistics and event engine still apply.
- }
+ if(s.flags?.isolatedScenario){s.urban=false;s.city=null;}
+ // The original national event engine remains active; this editor is a supplemental layer.
 }
 setInterval(sync,300);
 function panel(){
@@ -53,7 +52,7 @@ function panel(){
  $('cex-pins').innerHTML=Object.entries(names).map(([k,n])=>`<label style="display:block">${n}<input data-cex="${k}" type="number" step="any" style="width:100%;padding:6px" placeholder="固定しない"></label>`).join('');
  $('cex-set').onclick=()=>{const s=state();if(!s){$('cex-msg').textContent='人生を開始してください';return}for(const inp of root.querySelectorAll('[data-cex]')){const k=inp.dataset.cex;if(inp.value===''){delete pins[k];continue}const n=numeric(inp.value,k==='q'?1:-1e15,k==='q'?5:1e15);if(n!==null)pins[k]=k==='q'?Math.round(n):n}sync();$('cex-msg').textContent='固定条件を更新しました。'+Object.keys(pins).join(' / ');};
  $('cex-clear').onclick=()=>{for(const k of Object.keys(pins))delete pins[k];root.querySelectorAll('[data-cex]').forEach(x=>x.value='');$('cex-msg').textContent='固定を解除しました';};
- $('cex-add').onclick=()=>{const s=state();if(!s){$('cex-msg').textContent='人生を開始してください';return}const age=numeric($('cex-kage').value,0,150);if(age===null){$('cex-msg').textContent='子供の年齢は親の現在年齢以下にしてください';return}if(!Array.isArray(s.fam?.kids))return;const sex=$('cex-ksex').value;const g=$('cex-kname').value.trim()||('子供'+(s.fam.kids.length+1));s.fam.kids.push({name:{g,full:g},sex,bornAt:s.age-age,alive:true,adopted:$('cex-kadopt').value==='1'?1:0});s.stats.kidsBorn=(s.stats.kidsBorn||0)+1;refreshKids();$('cex-msg').textContent='子供を追加しました。表示更新は次の進行タイミングで反映される場合があります';};
+ $('cex-add').onclick=()=>{const s=state();if(!s){$('cex-msg').textContent='人生を開始してください';return}const age=numeric($('cex-kage').value,0,150);if(age===null){$('cex-msg').textContent='0〜150歳の範囲で指定してください';return}if(!Array.isArray(s.fam?.kids))return;const sex=$('cex-ksex').value;const g=$('cex-kname').value.trim()||('子供'+(s.fam.kids.length+1));s.fam.kids.push({name:{g,full:g},sex,bornAt:s.age-age,alive:true,adopted:$('cex-kadopt').value==='1'?1:0});s.stats.kidsBorn=(s.stats.kidsBorn||0)+1;refreshKids();$('cex-msg').textContent='子供を追加しました。表示更新は次の進行タイミングで反映される場合があります';};
  function refreshKids(){const s=state();const el=$('cex-kids');el.replaceChildren();if(!s?.fam?.kids){el.textContent='まだ開始されてゐません';return;}s.fam.kids.forEach((kid,i)=>{const row=document.createElement('div');row.style.cssText='padding:6px 0;border-bottom:1px solid var(--rule,#bbb);display:flex;gap:6px;align-items:center';const nm=typeof kid.name==='string'?kid.name:(kid.name?.full||kid.name?.g||'子供');const span=document.createElement('span');span.style.flex='1';span.textContent=`${i+1}. ${nm} / ${Math.max(0,Math.floor(s.age-kid.bornAt))}歳 / ${kid.alive?'生存':'死亡'}`;const alive=document.createElement('button');alive.type='button';alive.textContent=kid.alive?'死亡にする':'生存にする';alive.onclick=()=>{kid.alive=!kid.alive;refreshKids()};const del=document.createElement('button');del.type='button';del.textContent='削除';del.onclick=()=>{if(!confirm('この子供を一覧から削除しますか？'))return;s.fam.kids.splice(i,1);refreshKids()};row.append(span,alive,del);el.append(row)});}
  $('cex-familyapply').onclick=()=>{const s=state();if(!s?.fam){$('cex-msg').textContent='人生を開始してください';return}const f=s.fam;for(const [id,obj] of [['cex-momage',f.mom],['cex-dadage',f.dad]]){const a=numeric($(id).value,0,150);if(a!==null)obj.age=Math.floor(a)}f.mom.alive=$('cex-momalive').value==='1';f.dad.alive=$('cex-dadalive').value==='1';f.dad.absent=$('cex-dadabsent').value==='1';for(const [id,key] of [['cex-older','older'],['cex-younger','younger']]){const n=numeric($(id).value,0,100);if(n!==null)f[key]=Math.floor(n)}$('cex-msg').textContent='家族を変更しました（親の人数は実親2人の状態で表現します）';};
  function refreshFamily(){const s=state();if(!s?.fam)return;const f=s.fam;$('cex-momage').value=f.mom.age;$('cex-dadage').value=f.dad.age;$('cex-momalive').value=f.mom.alive?'1':'0';$('cex-dadalive').value=f.dad.alive?'1':'0';$('cex-dadabsent').value=f.dad.absent?'1':'0';$('cex-older').value=f.older;$('cex-younger').value=f.younger;}
@@ -83,11 +82,36 @@ const scenarioData={
 function scenarioType(s){if(!s?.flags)return null;if(s.flags.isolatedScenario==='sentinel_island')return 'sentinel';if(s.flags.isolatedScenario==='png_remote_1950')return 'png';if(s.flags.imperial)return 'imperial';if(s.flags.presidentChild)return 'president';if(s.flags.royal)return 'royal';return null;}
 let lastLife=null,lastAge=-1;
 function scenarioCycle(){
- const s=state();if(!s||s.phase==='end')return;
+ const s=state();if(!s||s.phase!=='life')return;
  if(s!==lastLife||s.age<lastAge){lastLife=s;lastAge=-1;}
  const type=scenarioType(s);if(!type)return;
  const d=scenarioData[type];s.flags.cexMilestones ||= {};
- for(const [age,msg] of d.milestones){const key=type+'_'+age;if(s.age>=age&&!s.flags.cexMilestones[key]){s.flags.cexMilestones[key]=1;try{log('特別シナリオ（創作）：'+msg,'ev');save();}catch(e){console.warn(e)}}}
+ for(const [age,msg] of d.milestones){
+  const key=type+'_'+age;
+  if(s.age>=age&&!s.flags.cexMilestones[key]){
+   s.flags.cexMilestones[key]=1;
+   safeRecord('特別シナリオ（創作）：'+msg);
+  }
+ }
+ // Choice-specific consequences are applied only once per in-game year.
+ const choice=s.flags.cexScenarioChoice;
+ if(choice?.type===type&&s.age!==lastAge&&s.age>=(choice.startAge||0)){
+  const key=type+'_choice_'+s.age;
+  if(!s.flags.cexMilestones[key]){
+   s.flags.cexMilestones[key]=1;
+   const effects={
+    imperial:[[-0.5,1,0],[0.5,0,0.2],[1,-0.5,0]],
+    president:[[-0.5,1,0],[0.5,0,0.3],[1,-0.5,0]],
+    royal:[[-0.5,1,0],[0.5,0,0.2],[1,-1,0]],
+    sentinel:[[0.5,0,0],[0.5,0,0],[0.5,0,0]],
+    png:[[0.5,0,0],[0,0,0.2],[0.5,0,0]]
+   };
+   const [h,so,edu]=effects[type]?.[choice.index]||[0,0,0];
+   if(s.st){s.st.h=Math.max(0,Math.min(100,(s.st.h||0)+h));s.st.so=Math.max(0,Math.min(100,(s.st.so||0)+so));}
+   if(edu)s.edu=Math.max(0,(s.edu||0)+edu);
+   if(s.age%5===0)safeRecord('選んだ方針「'+choice.label+'」が、その後の暮らしに影響してゐる。');
+  }
+ }
  lastAge=s.age;
 }
 function addScenarioPanel(){
@@ -96,11 +120,11 @@ function addScenarioPanel(){
  document.getElementById('cex-storyclose').onclick=()=>root.hidden=true;
  function show(){const s=state(),type=scenarioType(s),d=scenarioData[type];if(!d){document.getElementById('cex-storytitle').textContent='特殊な出自は未設定です';document.getElementById('cex-storychoices').replaceChildren();document.getElementById('cex-storymsg').textContent='出生条件で特殊な出自を選び、人生を始めてください。';return;}
  document.getElementById('cex-storytitle').textContent=d.title;const list=document.getElementById('cex-storychoices');list.replaceChildren();
- for(const [label,dh,dso,de] of d.choices){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='ghost sm';b.onclick=()=>{if(!state())return;const t=state();t.st.h=Math.min(100,Math.max(0,t.st.h+dh));t.st.so=Math.min(100,Math.max(0,t.st.so+dso));t.edu=Math.max(0,t.edu+de);try{log('特別シナリオで「'+label+'」を選んだ。','ev');save()}catch(e){}document.getElementById('cex-storymsg').textContent='選択を記録し、幸福・社会性・教育を変更しました。';};list.append(b)}
+ for(const [index,[label,dh,dso,de]] of d.choices.entries()){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='ghost sm';b.onclick=()=>{if(!state())return;const t=state();t.st.h=Math.min(100,Math.max(0,t.st.h+dh));t.st.so=Math.min(100,Math.max(0,t.st.so+dso));t.edu=Math.max(0,(t.edu||0)+de);t.flags.cexScenarioChoice={type,index,label,startAge:t.age};safeRecord('特別シナリオで「'+label+'」を選んだ。');document.getElementById('cex-storymsg').textContent='選択を記録しました。以後の各年にも、その方針の影響が反映されます。';};list.append(b)}
  document.getElementById('cex-storymsg').textContent='人生を進めると年齢に応じた特別な記録が追加されます。';}
  btn.onclick=()=>{root.hidden=!root.hidden;if(!root.hidden)show()};root.hidden=true;
 }
 
-function boot(){panel();addQuickAccess();addScenarioPanel();setInterval(scenarioCycle,1200)}
+function boot(){try{panel()}catch(e){console.error('family panel',e)}try{addQuickAccess()}catch(e){console.error('family shortcut',e)}try{addScenarioPanel()}catch(e){console.error('scenario panel',e)}setInterval(scenarioCycle,1200)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
