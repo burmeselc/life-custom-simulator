@@ -8,7 +8,7 @@
     <div class="wrap">
     <div class="hero">
       <div class="herotext">
-        <div class="kicker"><span class="nw"><span id="verTag">改造版 v0.5.0-custom</span><span class="nw" style="margin-left:8px;font-size:11px">2026-10-15更新 · 原作 v0.6.96</span> ·</span> <span class="nw">無料の人生シミュレーション ·</span> <span class="nw">172か国の実際の統計にもとづく</span></div>
+        <div class="kicker"><span class="nw"><span id="verTag">改造版 v0.5.1-custom</span><span class="nw" style="margin-left:8px;font-size:11px">2026-10-15更新 · 原作 v0.6.96</span> ·</span> <span class="nw">無料の人生シミュレーション ·</span> <span class="nw">172か国の実際の統計にもとづく</span></div>
         <h1>80億<span style="white-space:nowrap">分の<em>1</em></span></h1>
         <p class="friendline" id="friendLine" hidden=""></p>
         <p class="memo-news" id="memoNews" role="status" hidden=""></p>
@@ -303,7 +303,7 @@
 <label>一時停止<select data-c="pause"><option value="">変更なし</option><option value="yes">停止</option><option value="no">再開</option></select></label></div>
 <div style="display:flex;gap:10px;margin-top:14px"><button id="cheatApply" type="button" class="cta" style="padding:10px 16px">現在の人生に適用</button><button id="cheatRefresh" type="button" class="ghost" style="padding:8px">状態を確認</button></div><p id="cheatStatus" style="font-size:13px"></p></div>
 <script>(function(){const $=x=>document.getElementById(x),p=$('cheatPanel');$('cheatToggle').onclick=()=>{p.hidden=!p.hidden;if(!p.hidden)showState()};$('cheatClose').onclick=()=>p.hidden=true;function showState(){const s=window.__lifeCheat?.snapshot();$('cheatCurrent').textContent=s?('現在 '+s.age+'歳 / '+s.country+' / 所持金 '+s.money+' / 階層 '+s.q+' / '+JSON.stringify(s.flags)):'ゲーム開始前です。出生条件は上の設定欄をご使用ください。';} $('cheatRefresh').onclick=showState;$('cheatApply').onclick=()=>{const f={};p.querySelectorAll('[data-c]').forEach(x=>{if(x.value!=='')f[x.dataset.c]=x.value});const r=window.__lifeCheat?.apply(f);$('cheatStatus').textContent=r?r.message:'ゲームの読み込みを確認してください';showState();};})();</script>
-<script src="./ja.js?v=0.5.0"></script><script src="./game.ja.js?v=0.5.0"></script><script src="./live-ui.js?v=0.5.0"></script>
-<script src="./cheat-enhancements.js?v=0.5.0"></script>
-<script src="./isolated-engine.js?v=0.5.0"></script>
+<script src="./ja.js?v=0.5.1"></script><script src="./game.ja.js?v=0.5.1"></script><script src="./live-ui.js?v=0.5.1"></script>
+<script src="./cheat-enhancements.js?v=0.5.1"></script>
+<script src="./isolated-engine.js?v=0.5.1"></script>
 </body></html>
