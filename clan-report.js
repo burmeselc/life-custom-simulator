@@ -22,7 +22,19 @@ function makeReport(){
  const buttons=el('div');buttons.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:12px';
  const refresh=el('button','集計を更新');refresh.type='button';refresh.className='ghost sm';refresh.onclick=draw;
  const copy=el('button','氏族記録をコピー');copy.type='button';copy.className='ghost sm';copy.onclick=()=>{const s=state(),v=snapshot(s);if(!v)return;const text=[`年齢 ${v.age}歳 / 個別の子供 ${v.individual}人（生存 ${v.aliveIndividual}人）`,...names.map((n,i)=>`${n}: ${v.n[i]}人`),`集団管理累計出生 ${v.births}人 / 累計死亡 ${v.deaths}人`].join('\n');navigator.clipboard?.writeText(text).catch(()=>{});};
- buttons.append(refresh,copy);root.append(buttons);return root;
+ const img=el('button','氏族グラフをPNG保存');img.type='button';img.className='ghost sm';img.onclick=()=>{
+ const v=snapshot(state());if(!v)return;
+ const c=document.createElement('canvas');c.width=1000;c.height=650;const ctx=c.getContext('2d');if(!ctx)return;
+ ctx.fillStyle='#f7faf8';ctx.fillRect(0,0,c.width,c.height);
+ ctx.fillStyle='#13212a';ctx.font='bold 37px sans-serif';ctx.fillText('氏族・子孫の記録',50,65);
+ ctx.font='22px sans-serif';ctx.fillText('個別の子供 '+v.individual.toLocaleString()+'人　 集団管理 '+v.total.toLocaleString()+'人',50,112);
+ ctx.font='20px sans-serif';ctx.fillText('累計出生 '+v.births.toLocaleString()+'人　累計死亡 '+v.deaths.toLocaleString()+'人',50,155);
+ const max=Math.max(1,...v.n);
+ for(let i=0;i<5;i++){const y=210+i*78;ctx.fillStyle='#13212a';ctx.font='24px sans-serif';ctx.fillText(names[i],50,y+24);ctx.fillStyle='#dce4e1';ctx.fillRect(165,y,610,28);ctx.fillStyle='#0f6e68';ctx.fillRect(165,y,610*v.n[i]/max,28);ctx.fillStyle='#13212a';ctx.fillText(v.n[i].toLocaleString()+'人',800,y+24);}
+ ctx.fillStyle='#4a5a61';ctx.font='18px sans-serif';ctx.fillText('集団管理の簡易推計。個別の系譜ではありません。',50,610);
+ const a=document.createElement('a');a.download='clan-descendants.png';a.href=c.toDataURL('image/png');a.click();
+ };
+ buttons.append(refresh,copy,img);root.append(buttons);return root;
 }
 function draw(){
  const s=state(),v=snapshot(s),stats=$('clan-stats'),graph=$('clan-graph');if(!v||!stats||!graph)return;
