@@ -83,7 +83,36 @@ function panel(){
  get('cex-msg').textContent=count+'人追加しました。合計'+st.fam.kids.length+'人です。';
  }
  document.getElementById('cex-badd').onclick=addBatch;
- function refreshKids(){const s=state();const el=$('cex-kids');el.replaceChildren();if(!s?.fam?.kids){el.textContent='まだ開始されてゐません';return;}s.fam.kids.forEach((kid,i)=>{const row=document.createElement('div');row.style.cssText='padding:6px 0;border-bottom:1px solid var(--rule,#bbb);display:flex;gap:6px;align-items:center';const nm=typeof kid.name==='string'?kid.name:(kid.name?.full||kid.name?.g||'子供');const span=document.createElement('span');span.style.flex='1';span.textContent=`${i+1}. ${nm} / ${Math.max(0,Math.floor(s.age-kid.bornAt))}歳 / ${kid.alive?'生存':'死亡'}`;const alive=document.createElement('button');alive.type='button';alive.textContent=kid.alive?'死亡にする':'生存にする';alive.onclick=()=>{kid.alive=!kid.alive;refreshKids()};const del=document.createElement('button');del.type='button';del.textContent='削除';del.onclick=()=>{if(!confirm('この子供を一覧から削除しますか？'))return;s.fam.kids.splice(i,1);refreshKids()};row.append(span,alive,del);el.append(row)});}
+
+ let kidPage=0;
+ function refreshKids(){
+  const st=state(),el=$('cex-kids');el.replaceChildren();
+  const list=st?.fam?.kids;
+  if(!Array.isArray(list)){el.textContent='人生開始後に表示します';return;}
+  const pageSize=100,pages=Math.max(1,Math.ceil(list.length/pageSize));
+  kidPage=Math.min(Math.max(0,kidPage),pages-1);
+  const toolbar=document.createElement('div');toolbar.style.cssText='position:sticky;top:0;background:var(--card,#fff);display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;z-index:1';
+  const prev=document.createElement('button'),next=document.createElement('button'),info=document.createElement('span');
+  prev.type=next.type='button';prev.textContent='前へ';next.textContent='次へ';
+  prev.disabled=kidPage===0;next.disabled=kidPage>=pages-1;
+  info.style.fontSize='12px';info.textContent='全'+list.length+'人 / '+(kidPage+1)+' / '+pages+'ページ（100件ずつ）';
+  prev.onclick=()=>{kidPage--;refreshKids()};next.onclick=()=>{kidPage++;refreshKids()};
+  toolbar.append(prev,info,next);el.append(toolbar);
+  const fragment=document.createDocumentFragment(),start=kidPage*pageSize,end=Math.min(list.length,start+pageSize);
+  for(let i=start;i<end;i++){
+   const kid=list[i],row=document.createElement('div');row.style.cssText='padding:6px 0;border-bottom:1px solid var(--rule,#bbb);display:flex;gap:6px;align-items:center';
+   const nm=typeof kid.name==='string'?kid.name:(kid.name?.full||kid.name?.g||'子供');
+   const span=document.createElement('span');span.style.flex='1';
+   span.textContent=(i+1)+'. '+nm+' / '+Math.max(0,Math.floor(st.age-kid.bornAt))+'歳 / '+(kid.alive?'生存':'死亡');
+   const alive=document.createElement('button');alive.type='button';alive.textContent=kid.alive?'死亡にする':'生存にする';
+   alive.onclick=()=>{kid.alive=!kid.alive;refreshKids()};
+   const del=document.createElement('button');del.type='button';del.textContent='削除';
+   del.onclick=()=>{if(!confirm('この子供を一覧から削除しますか？'))return;list.splice(i,1);refreshKids()};
+   row.append(span,alive,del);fragment.append(row);
+  }
+  el.append(fragment);
+ }
+
  $('cex-familyapply').onclick=()=>{const s=state();if(!s?.fam){$('cex-msg').textContent='人生を開始してください';return}const f=s.fam;for(const [id,obj] of [['cex-momage',f.mom],['cex-dadage',f.dad]]){const a=numeric($(id).value,0,150);if(a!==null)obj.age=Math.floor(a)}f.mom.alive=$('cex-momalive').value==='1';f.dad.alive=$('cex-dadalive').value==='1';f.dad.absent=$('cex-dadabsent').value==='1';for(const [id,key] of [['cex-older','older'],['cex-younger','younger']]){const n=numeric($(id).value,0,100);if(n!==null)f[key]=Math.floor(n)}$('cex-msg').textContent='家族を変更しました（親の人数は実親2人の状態で表現します）';};
  function refreshFamily(){const s=state();if(!s?.fam)return;const f=s.fam;$('cex-momage').value=f.mom.age;$('cex-dadage').value=f.dad.age;$('cex-momalive').value=f.mom.alive?'1':'0';$('cex-dadalive').value=f.dad.alive?'1':'0';$('cex-dadabsent').value=f.dad.absent?'1':'0';$('cex-older').value=f.older;$('cex-younger').value=f.younger;}
  const mortality={mode:'normal',age:100};
