@@ -32,14 +32,14 @@ function panel(){
  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button type="button" id="cex-add" class="ghost sm">子供を追加</button><button type="button" id="cex-list" class="ghost sm">子供一覧を更新</button></div>
  <div style="border:1px solid var(--rule,#bbb);padding:10px;border-radius:8px;margin:10px 0"><b>子供をまとめて追加</b>
  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px">
- <label>追加人数<input id="cex-bcount" type="number" min="1" max="500" value="5"></label>
+ <label>追加人数<input id="cex-bcount" type="number" min="1" max="5000" value="5"></label>
  <label>年齢の決め方<select id="cex-bagemode"><option value="same">全員同じ年齢</option><option value="random">指定範囲でランダム</option></select></label>
  <label>年齢・下限<input id="cex-bmin" type="number" min="0" max="150" value="0"></label>
  <label>年齢・上限<input id="cex-bmax" type="number" min="0" max="150" value="18"></label>
  <label>性別<select id="cex-bsex"><option value="mix">男女ランダム</option><option value="F">全員女性</option><option value="M">全員男性</option></select></label>
  <label>出生区分<select id="cex-badopt"><option value="0">実子</option><option value="1">養子</option></select></label></div>
  <button id="cex-badd" class="ghost sm" type="button" style="margin-top:8px">まとめて追加する</button>
- <p style="font-size:12px;margin:6px 0 0">既存の子供は残します。養子は親本人より年上でも追加できます。最大500人／回。</p></div>
+ <p style="font-size:12px;margin:6px 0 0">既存の子供は残します。養子は親本人より年上でも追加できます。個別データは最大5,000人／回。大人数には下の「集団として追加」を推奨します。</p></div>
  <div id="cex-kids" style="max-height:210px;overflow:auto"></div>
  <h4 style="margin:12px 0 6px">両親・きょうだい</h4>
  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
@@ -68,8 +68,8 @@ function panel(){
  const get=id=>document.getElementById(id);
  const rawCount=Number(get('cex-bcount').value),lo=Number(get('cex-bmin').value),hi=Number(get('cex-bmax').value);
  const count=Math.floor(rawCount),random=get('cex-bagemode').value==='random',adopted=get('cex-badopt').value==='1';
- if(!Number.isInteger(rawCount)||count<1||count>500||![lo,hi].every(Number.isInteger)||lo<0||lo>150||hi<0||hi>150||(random&&lo>hi)){
-  get('cex-msg').textContent='人数は1〜500、年齢は0〜150、下限は上限以下で入力してください';return;
+ if(!Number.isInteger(rawCount)||count<1||count>5000||![lo,hi].every(Number.isInteger)||lo<0||lo>150||hi<0||hi>150||(random&&lo>hi)){
+  get('cex-msg').textContent='人数は1〜5,000、年齢は0〜150、下限は上限以下で入力してください';return;
  }
  const chosenAge=()=>random?lo+Math.floor(Math.random()*(hi-lo+1)):lo;
  const base=st.fam.kids.length;
