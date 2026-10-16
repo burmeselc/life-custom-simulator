@@ -30,6 +30,16 @@ function panel(){
  <label>年齢<input id="cex-kage" type="number" min="0" max="150" value="0"></label>
  <label>出生区分<select id="cex-kadopt"><option value="0">実子</option><option value="1">養子</option></select></label></div>
  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button type="button" id="cex-add" class="ghost sm">子供を追加</button><button type="button" id="cex-list" class="ghost sm">子供一覧を更新</button></div>
+ <div style="border:1px solid var(--rule,#bbb);padding:10px;border-radius:8px;margin:10px 0"><b>子供をまとめて追加</b>
+ <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px">
+ <label>追加人数<input id="cex-bcount" type="number" min="1" max="500" value="5"></label>
+ <label>年齢の決め方<select id="cex-bagemode"><option value="same">全員同じ年齢</option><option value="random">指定範囲でランダム</option></select></label>
+ <label>年齢・下限<input id="cex-bmin" type="number" min="0" max="150" value="0"></label>
+ <label>年齢・上限<input id="cex-bmax" type="number" min="0" max="150" value="18"></label>
+ <label>性別<select id="cex-bsex"><option value="mix">男女ランダム</option><option value="F">全員女性</option><option value="M">全員男性</option></select></label>
+ <label>出生区分<select id="cex-badopt"><option value="0">実子</option><option value="1">養子</option></select></label></div>
+ <button id="cex-badd" class="ghost sm" type="button" style="margin-top:8px">まとめて追加する</button>
+ <p style="font-size:12px;margin:6px 0 0">既存の子供は残します。養子は親本人より年上でも追加できます。最大500人／回。</p></div>
  <div id="cex-kids" style="max-height:210px;overflow:auto"></div>
  <h4 style="margin:12px 0 6px">両親・きょうだい</h4>
  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
@@ -53,6 +63,26 @@ function panel(){
  $('cex-set').onclick=()=>{const s=state();if(!s){$('cex-msg').textContent='人生を開始してください';return}for(const inp of root.querySelectorAll('[data-cex]')){const k=inp.dataset.cex;if(inp.value===''){delete pins[k];continue}const n=numeric(inp.value,k==='q'?1:-1e15,k==='q'?5:1e15);if(n!==null)pins[k]=k==='q'?Math.round(n):n}sync();$('cex-msg').textContent='固定条件を更新しました。'+Object.keys(pins).join(' / ');};
  $('cex-clear').onclick=()=>{for(const k of Object.keys(pins))delete pins[k];root.querySelectorAll('[data-cex]').forEach(x=>x.value='');$('cex-msg').textContent='固定を解除しました';};
  $('cex-add').onclick=()=>{const s=state();if(!s){$('cex-msg').textContent='人生を開始してください';return}const age=numeric($('cex-kage').value,0,150);if(age===null){$('cex-msg').textContent='0〜150歳の範囲で指定してください';return}if(!Array.isArray(s.fam?.kids))return;const sex=$('cex-ksex').value;const g=$('cex-kname').value.trim()||('子供'+(s.fam.kids.length+1));s.fam.kids.push({name:{g,full:g},sex,bornAt:s.age-age,alive:true,adopted:$('cex-kadopt').value==='1'?1:0});s.stats.kidsBorn=(s.stats.kidsBorn||0)+1;refreshKids();$('cex-msg').textContent='子供を追加しました。表示更新は次の進行タイミングで反映される場合があります';};
+ function addBatch(){
+ const st=state();if(!st?.fam||!Array.isArray(st.fam.kids)){document.getElementById('cex-msg').textContent='先に人生を開始してください';return}
+ const get=id=>document.getElementById(id);
+ const rawCount=Number(get('cex-bcount').value),lo=Number(get('cex-bmin').value),hi=Number(get('cex-bmax').value);
+ const count=Math.floor(rawCount),random=get('cex-bagemode').value==='random',adopted=get('cex-badopt').value==='1';
+ if(!Number.isInteger(rawCount)||count<1||count>500||![lo,hi].every(Number.isInteger)||lo<0||lo>150||hi<0||hi>150||(random&&lo>hi)){
+  get('cex-msg').textContent='人数は1〜500、年齢は0〜150、下限は上限以下で入力してください';return;
+ }
+ const chosenAge=()=>random?lo+Math.floor(Math.random()*(hi-lo+1)):lo;
+ const base=st.fam.kids.length;
+ for(let i=0;i<count;i++){
+  const age=chosenAge(),sex=get('cex-bsex').value==='mix'?(Math.random()<.5?'M':'F'):get('cex-bsex').value;
+  const g='子供'+(base+i+1);
+  st.fam.kids.push({name:{g,full:g},sex,bornAt:st.age-age,alive:true,adopted:adopted?1:0});
+ }
+ if(st.stats)st.stats.kidsBorn=(st.stats.kidsBorn||0)+count;
+ refreshKids();
+ get('cex-msg').textContent=count+'人追加しました。合計'+st.fam.kids.length+'人です。';
+ }
+ document.getElementById('cex-badd').onclick=addBatch;
  function refreshKids(){const s=state();const el=$('cex-kids');el.replaceChildren();if(!s?.fam?.kids){el.textContent='まだ開始されてゐません';return;}s.fam.kids.forEach((kid,i)=>{const row=document.createElement('div');row.style.cssText='padding:6px 0;border-bottom:1px solid var(--rule,#bbb);display:flex;gap:6px;align-items:center';const nm=typeof kid.name==='string'?kid.name:(kid.name?.full||kid.name?.g||'子供');const span=document.createElement('span');span.style.flex='1';span.textContent=`${i+1}. ${nm} / ${Math.max(0,Math.floor(s.age-kid.bornAt))}歳 / ${kid.alive?'生存':'死亡'}`;const alive=document.createElement('button');alive.type='button';alive.textContent=kid.alive?'死亡にする':'生存にする';alive.onclick=()=>{kid.alive=!kid.alive;refreshKids()};const del=document.createElement('button');del.type='button';del.textContent='削除';del.onclick=()=>{if(!confirm('この子供を一覧から削除しますか？'))return;s.fam.kids.splice(i,1);refreshKids()};row.append(span,alive,del);el.append(row)});}
  $('cex-familyapply').onclick=()=>{const s=state();if(!s?.fam){$('cex-msg').textContent='人生を開始してください';return}const f=s.fam;for(const [id,obj] of [['cex-momage',f.mom],['cex-dadage',f.dad]]){const a=numeric($(id).value,0,150);if(a!==null)obj.age=Math.floor(a)}f.mom.alive=$('cex-momalive').value==='1';f.dad.alive=$('cex-dadalive').value==='1';f.dad.absent=$('cex-dadabsent').value==='1';for(const [id,key] of [['cex-older','older'],['cex-younger','younger']]){const n=numeric($(id).value,0,100);if(n!==null)f[key]=Math.floor(n)}$('cex-msg').textContent='家族を変更しました（親の人数は実親2人の状態で表現します）';};
  function refreshFamily(){const s=state();if(!s?.fam)return;const f=s.fam;$('cex-momage').value=f.mom.age;$('cex-dadage').value=f.dad.age;$('cex-momalive').value=f.mom.alive?'1':'0';$('cex-dadalive').value=f.dad.alive?'1':'0';$('cex-dadabsent').value=f.dad.absent?'1':'0';$('cex-older').value=f.older;$('cex-younger').value=f.younger;}
